@@ -96,14 +96,11 @@ class Generator(nn.Module): # 生成器
 
         x1 = inputs
         x2 = label
-        # x2.view()
         x = torch.cat((x1,x2),dim=1)
-        # print('input--->',x.shape)
+
         for i in range(0, stage):
             x = self.blocks[i](x)
             x = self.upsample(x)
-            #print('stage--->',x.shape)
-
         identity = x
         x = self.blocks[stage](x)
         x = self.toRGBs[stage](x)
@@ -111,7 +108,7 @@ class Generator(nn.Module): # 生成器
         if alpha % 1 != 0: # 如果有α，则融合图像
             identity = self.toRGBs[stage - 1](identity)
             x = alpha * x + (1 - alpha) * identity
-        # print('output-->',x.shape)
+
         return x
 
     def first_conv_block(self, in_channels, out_channels):
@@ -132,7 +129,7 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         self.max_stage = max_stage
 
-        self.fromRGBs = nn.ModuleList() # 构造函数列表
+        self.fromRGBs = nn.ModuleList() 
         for i in reversed(range(self.max_stage + 1)):
             out_channels = min(base_channels * 2 ** i, 512)
             self.fromRGBs.append(ConvBlock(image_channels, out_channels, 1, 1, 0, "lrelu", False))
@@ -154,12 +151,12 @@ class Discriminator(nn.Module):
         # x1 = x1.view(-1, 1, 64, 64, 64)        
         x = torch.cat((x1,x2),dim=1)
         x = self.fromRGBs[stage](inputs)
-        #print('from-RGB-->',x.shape)
+
         for i in range(stage, 0, -1):
             x = self.blocks[i](x)
-            #print('block[i]-->',x.shape)
+
             x = self.downsample(x)
-            #print('downsample-->',x.shape)
+
             if i == stage and alpha % 1 != 0:
                 identity = self.downsample(inputs)
                 identity = self.fromRGBs[stage - 1](identity)

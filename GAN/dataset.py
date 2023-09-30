@@ -40,15 +40,11 @@ class HDF5Dataset(data.Dataset):
         self.target_transform = target_transform
         self.stage = stage
         self.max_stage = max_stage
-        # self.images = list()
-        # self.labels = list()
-        # self.image_filenames = self.df['filename']
+
         
         self.labels= self.df['label']            
 
     def __getitem__(self, index):
-        # img = load_img(self.df['filename'][index], self.stage, self.max_stage)
-        #print('HDF5---》', input.size)
         images = load_img(self.image_filenames[index], self.stage, self.max_stage)
         if self.input_transform is not None:
             images = self.input_transform(images)
@@ -65,8 +61,6 @@ class HDF5Dataset(data.Dataset):
 if __name__ == '__main__':
     dataroot = './datasets/berea64/'
     csv_path = './datasets/berea64_label.csv'
-    # df1 = pd.read_csv(csv_path,encoding='utf-8')
-    # img = load_img(df1['filename'], stage=None, max_stage=None)
     dataset = HDF5Dataset(dataroot,csv_path,
                            input_transform=None,
                           stage=None, max_stage=None
@@ -79,4 +73,3 @@ if __name__ == '__main__':
         print(i)
         print(real_images.shape)
         print(porosity_label.shape)
-# images, labels = dataset.__getitem__(34) # get the 34th sample

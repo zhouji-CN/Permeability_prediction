@@ -18,7 +18,7 @@ import h5py
 from tqdm import tqdm
 
 
-work_dir = os.path.expandvars('./') # 扩展给定路径中的环境变量
+work_dir = os.path.expandvars('./')
 # torch.set_default_tensor_type(torch.FloatTensor)
 # os.environ["CUDA_VISIBLE_DEVICES"]="0,2"
 
@@ -90,16 +90,6 @@ d_optimizer = Adam(discriminator.parameters(), lr=1e-3, betas=(0, 0.99))
 
 start_epoch = -1
 start_stage = -1
-# # # 判断是否有断点，每次开始程序时手动设置
-# if 1:
-#     path_checkpoint = "./checkpoint/ckpt_best_2_120.pth"  # 断点路径
-#     checkpoint = torch.load(path_checkpoint)  # 加载断点
-#     generator.load_state_dict(checkpoint['netG'])  # 加载netG模型可学习参数
-#     discriminator.load_state_dict(checkpoint['netD'])  # 加载netD模型可学习参数
-#     d_optimizer.load_state_dict(checkpoint['optimizerD'])  # 加载优化器optimizerD参数
-#     g_optimizer.load_state_dict(checkpoint['optimizerG'])  # 加载优化器optimizerG参数  
-#     start_epoch = checkpoint['epoch']  # 设置开始的epoch
-#     # lr_schedule.load_state_dict(checkpoint['lr_schedule'])#加载lr_scheduler
 
 for stage in range(start_stage+1,num_stages + 1):
     #train_dataset = get_dataset(data_name=opt.dataset, data_root=opt.data_root, stage=stage, max_stage=opt.num_stages, train=True)
@@ -142,29 +132,29 @@ for stage in range(start_stage+1,num_stages + 1):
             discriminator.zero_grad()
 
             # 噪声向量与标签数据组合成新的潜向量
-            fix_latent_dim = min(base_channels * 2 ** num_stages-128, 512) # 固定噪声潜向量维度
-            fix_z = torch.randn((batch_size[stage], fix_latent_dim, 1, 1, 1),device=device) # 固定噪声维度扩展并赋值为高斯分布
+            fix_latent_dim = min(base_channels * 2 ** num_stages-128, 512) 
+            fix_z = torch.randn((batch_size[stage], fix_latent_dim, 1, 1, 1),device=device) 
             fix_z = fix_z.type(torch.cuda.FloatTensor) # 转换为FloatTensor
-            porosity_label = porosity_label.view(batch_size[stage], 1, 1, 1, 1) # 标签扩展为5D
-            dporosity_label = porosity_label.view(batch_size[stage], 128, 1, 1, 1) # 标签在通道维度上复制128次
-            dporosity_label = dporosity_label.type(torch.cuda.FloatTensor) # 将标签转换为FloatTensor类型
+            porosity_label = porosity_label.view(batch_size[stage], 1, 1, 1, 1) 
+            dporosity_label = porosity_label.view(batch_size[stage], 128, 1, 1, 1) 
+            dporosity_label = dporosity_label.type(torch.cuda.FloatTensor) 
             
             # 生成假图像
             with torch.no_grad():
                 fake_images = generator(dporosity_label, fix_z, progress.alpha, progress.stage)
-            weidu = 4 * 2 ** min(stage, num_stages) # 当前图片的三个维度数值
+            weidu = 4 * 2 ** min(stage, num_stages) 
             gporosity_label = porosity_label.expand(batch_size[stage], 1, weidu, weidu, weidu)
             gporosity_label = gporosity_label.type(torch.cuda.FloatTensor)
             
             d_real = discriminator(gporosity_label,real_images, progress.alpha, progress.stage).mean()
             d_fake = discriminator(gporosity_label,fake_images, progress.alpha, progress.stage).mean()
-            # print('real_image---->', real_images.shape)
+
             gradient_penalty = gp(discriminator, real_images.data, fake_images.data, progress)
 
-            epsilon_penalty = (d_real ** 2).mean() * 0.001 # ？
+            epsilon_penalty = (d_real ** 2).mean() * 0.001 
 
             d_loss = d_fake - d_real
-            d_loss_gp = d_loss + gradient_penalty + epsilon_penalty # 鉴别器损失
+            d_loss_gp = d_loss + gradient_penalty + epsilon_penalty 
 
             d_loss_gp.backward()
             d_optimizer.step()
@@ -195,11 +185,8 @@ for stage in range(start_stage+1,num_stages + 1):
             save_hdf5(fake, work_dir +'/fake_sample/' + 'fake_samples_stage{0}_{1}.hdf5'.format(stage,epoch))
             # fake_images = fake.permute(0, 2, 3, 4, 1).detach().cpu()
             fake_images = fake.detach().cpu() 
-            section = int(fake.size(4)/2) # 计算中心截面位置
-            fake_images_sec = fake_images[:,:,:,:,section] # 得到批次3D模型的高度方向截面2D图像
-            # fake_images = concat_image(fake_images)
-            # fake_images = resize_image(fake_images, 200)
-            # save_image("./outputs/train/{}stage_{}epoch.jpg".format(stage, epoch), fake_images)
+            section = int(fake.size(4)/2) 
+            fake_images_sec = fake_images[:,:,:,:,section] 
             plt.figure(figsize=(6, 6))
             plt.axis("off")
             plt.imshow(np.transpose(vutils.make_grid(fake_images_sec, nrow=6, padding=2, normalize=True),(1,2,0)))
@@ -211,8 +198,6 @@ for stage in range(start_stage+1,num_stages + 1):
             
         # do checkpointing
         if epoch % 30 == 0:
-            # torch.save(netG.state_dict(), work_dir+'checkpoint/netG_epoch_%d.pth' % (epoch))
-            # torch.save(netD.state_dict(), work_dir+'checkpoint/netD_epoch_%d.pth' % (epoch))
             checkpoint = {
                     'netG': generator.state_dict(),
                     'netD': discriminator.state_dict(),
